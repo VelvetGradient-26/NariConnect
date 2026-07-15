@@ -2,7 +2,7 @@
 
 NariConnect (developed by Team CodeCorps for the LeadHer track) is an AI-powered Women Scheme Matching Engine designed to connect Indian women to the most relevant government financial programs. By intelligently processing user profiles, the platform bridges the awareness gap, reduces information barriers, and promotes financial inclusion.
 
-## 🌟 Key Features
+## Key Features
 
 * **AI-Powered Scheme Matching Engine:** Intelligently connects women to suitable central and state financial schemes based on specific user details like state, age, income, occupation, and purpose (e.g., business, education, savings).
 * **Personalized Eligibility Guidance:** Utilizes an LLM API to generate customized eligibility explanations and policy recommendations, transforming raw scheme matches into simple, human-readable advice.
@@ -12,7 +12,7 @@ NariConnect (developed by Team CodeCorps for the LeadHer track) is an AI-powered
 
 ---
 
-## 🏗️ Architecture & Workflow
+## Architecture & Workflow
 
 The platform follows a RAG (Retrieval-Augmented Generation) architecture to ensure accurate and context-aware responses.
 
@@ -55,7 +55,7 @@ graph TD
 
 ---
 
-## 💻 Tech Stack
+## Tech Stack
 
 ### Frontend
 * **Framework:** React 19 + Vite
@@ -73,7 +73,7 @@ graph TD
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 * Node.js (v18+)
@@ -146,7 +146,7 @@ If you are running the backend on a lightweight laptop but want to use a friend'
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 nariconnect/
