@@ -28,19 +28,27 @@ const SchemeDetails = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let stale = false;
     const loadScheme = async () => {
+      setLoading(true);
       try {
         const token = await getToken();
         const data = await fetchSchemeDetails(token, slug);
-        setScheme(data);
+        if (!stale) setScheme(data);
       } catch (error) {
-        console.error("Failed to load scheme details", error);
+        if (!stale) {
+          console.error("Failed to load scheme details", error);
+          setScheme(null);
+        }
       } finally {
-        setLoading(false);
+        if (!stale) setLoading(false);
       }
     };
     loadScheme();
-  }, [slug]);
+    return () => {
+      stale = true;
+    };
+  }, [slug, getToken]);
 
   const getPrimitiveValue = (value) => {
     if (value === null || value === undefined || value === "") return "—";

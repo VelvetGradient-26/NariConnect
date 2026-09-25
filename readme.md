@@ -89,9 +89,10 @@ cd frontend
 npm install
 ```
 
-Create a `.env` file in the `frontend` folder and add your Clerk publishable key:
+Create a `.env` file in the `frontend` folder and add your Clerk publishable key and the backend URL:
 ```env
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_publishable_key_here
+VITE_API_URL=http://localhost:8000/api
 ```
 
 Start the Vite development server:
@@ -101,7 +102,14 @@ npm run dev
 The frontend will be available at `http://localhost:5173`.
 
 ### 2. Backend Setup
-Navigate to the `backend` directory. It is highly recommended to use a Python virtual environment.
+Navigate to the `backend` directory. With [uv](https://docs.astral.sh/uv/) (uses `pyproject.toml` + `uv.lock`):
+```bash
+cd backend
+uv sync
+uv run uvicorn main:app --reload
+```
+
+Or with a plain virtual environment:
 ```bash
 cd backend
 python -m venv venv
@@ -113,6 +121,17 @@ source venv/bin/activate
 # venv\Scripts\activate
 
 pip install -r requirements.txt
+```
+
+Create a `.env` file in the `backend` folder:
+```env
+MONGO_URI=mongodb://localhost:27017
+CLERK_SECRET_KEY=sk_test_your_clerk_secret_key_here
+OLLAMA_HOST=http://localhost:11434
+# Optional: accept the bearer token `dev_test_123` for local API testing. Never enable in production.
+AUTH_DEV_BYPASS=false
+# Only needed to run data_scraper.py
+MYSCHEME_API_KEY=
 ```
 
 Start the FastAPI server:
@@ -139,9 +158,9 @@ If you are running the backend on a lightweight laptop but want to use a friend'
 2. Run `ollama serve` on the GPU machine.
 3. Find the GPU machine's local IP address (e.g., `192.168.1.100`).
 4. In your **backend environment**, configure the `OLLAMA_HOST` variable to point to that machine:
-   ```python
-   # In app/config.py or .env
-   OLLAMA_HOST = "[http://192.168.1.100:11434](http://192.168.1.100:11434)"
+   ```env
+   # In backend/.env
+   OLLAMA_HOST=http://192.168.1.100:11434
    ```
 
 ---
@@ -175,4 +194,4 @@ nariconnect/
 ---
 
 ## 🔒 API Authentication
-The backend routes (like `/api/chat`) are protected using Clerk JWTs. When the React frontend makes a request, it automatically attaches the user's active session token as a Bearer token. The FastAPI backend verifies this token using the `get_current_user` dependency before processing the request.
+All `/api/*` routes are protected using Clerk JWTs. When the React frontend makes a request, it automatically attaches the user's active session token as a Bearer token. The FastAPI backend verifies the token's RS256 signature against Clerk's JWKS (fetched with `CLERK_SECRET_KEY`) in the `get_current_user` dependency before processing the request.

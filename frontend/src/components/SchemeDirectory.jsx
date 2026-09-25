@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth, useUser } from '@clerk/clerk-react';
+import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
@@ -20,7 +20,6 @@ import { fetchSchemes } from '../services/api';
 
 const SchemeDirectory = () => {
   const { getToken } = useAuth();
-  const { user } = useUser();
   const navigate = useNavigate();
 
   const [schemes, setSchemes] = useState([]);
@@ -38,24 +37,32 @@ const SchemeDirectory = () => {
 
   const [activeFilters, setActiveFilters] = useState([]);
 
+  // Reload when page or filters change
   useEffect(() => {
-    loadSchemes();
-  }, [page, filters]); // Reload when page or filters change
+    // Typing in search fires a request per keystroke; ignore responses that arrive out of order
+    let stale = false;
 
-  const loadSchemes = async () => {
-    setLoading(true);
-    try {
-      const token = await getToken();
-      const data = await fetchSchemes(token, page, filters);
-      setSchemes(data.data);
-      setTotalPages(data.total_pages);
-      setTotalSchemes(data.total);
-    } catch (error) {
-      console.error("Failed to load schemes", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const loadSchemes = async () => {
+      setLoading(true);
+      try {
+        const token = await getToken();
+        const data = await fetchSchemes(token, page, filters);
+        if (stale) return;
+        setSchemes(data.data);
+        setTotalPages(data.total_pages);
+        setTotalSchemes(data.total);
+      } catch (error) {
+        if (!stale) console.error("Failed to load schemes", error);
+      } finally {
+        if (!stale) setLoading(false);
+      }
+    };
+
+    loadSchemes();
+    return () => {
+      stale = true;
+    };
+  }, [page, filters, getToken]);
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -75,6 +82,7 @@ const SchemeDirectory = () => {
 
   const removeFilter = (key) => {
     setFilters(prev => ({ ...prev, [key]: '' }));
+    setPage(1);
     setActiveFilters(prev => prev.filter(f => f.key !== key));
   };
 
@@ -109,6 +117,7 @@ const SchemeDirectory = () => {
                 onClick={() => {
                   setFilters({ search: '', sector: '', state: '', level: '' });
                   setActiveFilters([]);
+                  setPage(1);
                 }}
                 className="text-xs font-semibold text-rose-500 hover:underline"
               >

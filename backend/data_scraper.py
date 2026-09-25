@@ -2,11 +2,22 @@ import requests
 import json
 import time
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Datasets live next to this script (backend/)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def extract_deep_scheme_details():
     # 1. Open your base dataset
-    input_file = "myscheme_rag_dataset.json"
+    input_file = os.path.join(BASE_DIR, "myscheme_rag_dataset.json")
+
+    api_key = os.getenv("MYSCHEME_API_KEY")
+    if not api_key:
+        print("Error: MYSCHEME_API_KEY is not set. Add it to backend/.env.")
+        return
 
     if not os.path.exists(input_file):
         print(f"Error: Could not find '{input_file}'. Make sure it is in the same folder.")
@@ -24,7 +35,7 @@ def extract_deep_scheme_details():
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:148.0) Gecko/20100101 Firefox/148.0',
         'Accept': 'application/json, text/plain, */*',
         'Accept-Language': 'en-US,en;q=0.9',
-        'x-api-key': 'tYTy5eEhlu9rFjyxuCr7ra7ACp4dv1RH8gWuHTDc',
+        'x-api-key': api_key,
         'Origin': 'https://www.myscheme.gov.in',
         'Connection': 'keep-alive',
         'Sec-Fetch-Dest': 'empty',
@@ -83,7 +94,7 @@ def extract_deep_scheme_details():
             print(f"Error fetching {scheme_slug}: {e}")
 
     # 4. Save the enriched master RAG database
-    output_file = "myscheme_deep_rag_dataset_v6.json"
+    output_file = os.path.join(BASE_DIR, "myscheme_deep_rag_dataset_v6.json")
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(detailed_dataset, f, indent=4, ensure_ascii=False)
 

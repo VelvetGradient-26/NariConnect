@@ -69,7 +69,7 @@ const Chat = () => {
         cards: data.schemes?.map(scheme => ({
           title: scheme.metadata.schemeShortTitle || scheme.metadata.schemeName,
           desc: scheme.metadata.description ? scheme.metadata.description.substring(0, 120) + "..." : "No description available",
-          tag: scheme.metadata.schemeCategory || "SCHEME"
+          tag: scheme.metadata.categories?.split(',')[0] || "SCHEME"
         }))
       };
       

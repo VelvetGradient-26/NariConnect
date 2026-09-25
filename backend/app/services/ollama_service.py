@@ -1,4 +1,5 @@
 import json
+import re
 import ollama
 from app.config import OLLAMA_HOST, OLLAMA_MODEL, OLLAMA_EMBED_MODEL
 
@@ -69,7 +70,6 @@ User's Input/Question: "{prompt}"
     
     # Parse the JSON flag at the end
     should_show_schemes = False
-    import re
     json_match = re.search(r'\{\s*"recommended_schemes"\s*:\s*(true|false)\s*\}\s*$', content, re.IGNORECASE)
     
     if json_match:
@@ -106,8 +106,10 @@ Do not include any markdown formatting, explanations, or text outside the JSON o
         },
     )
     
+    empty = {"age": None, "gender": None, "occupation": None, "state": None, "income": None}
     try:
-        return json.loads(response["message"]["content"])
+        extracted = json.loads(response["message"]["content"])
     except json.JSONDecodeError:
         # Fallback in case the LLM messes up the JSON formatting
-        return {"age": None, "gender": None, "occupation": None, "state": None, "income": None}
+        return empty
+    return extracted if isinstance(extracted, dict) else empty

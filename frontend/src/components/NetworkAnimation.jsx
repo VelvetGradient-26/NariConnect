@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Sphere, Line } from '@react-three/drei';
 import * as THREE from 'three';
@@ -15,7 +15,8 @@ const NetworkAnimation = () => {
   });
 
   const count = 20;
-  const { points, connections } = useMemo(() => {
+  // Lazy state initializer: random layout is generated once per mount, outside render
+  const [{ points, connections }] = useState(() => {
     const pts = new Array(count).fill(0).map(() => ({
       position: [
         (Math.random() - 0.5) * 8,
@@ -35,7 +36,7 @@ const NetworkAnimation = () => {
       });
     });
     return { points: pts, connections: conns };
-  }, []);
+  });
 
   return (
     <group ref={groupRef}>

@@ -99,8 +99,6 @@ def seed_database(json_filepath: str, clear_collection: bool = True):
         print(f"Inserting {len(valid_schemes)} new records (this may take a minute)...")
 
         # Use bulk upsert to handle duplicates
-        from pymongo import UpdateOne
-
         operations = []
         for scheme in valid_schemes:
             operations.append(
@@ -111,7 +109,7 @@ def seed_database(json_filepath: str, clear_collection: bool = True):
         batch_size = 1000
         for i in range(0, len(operations), batch_size):
             batch = operations[i : i + batch_size]
-            result = collection.bulk_write(batch, ordered=False)
+            collection.bulk_write(batch, ordered=False)
             print(f"Inserted/Updated {i + len(batch)}/{len(valid_schemes)}")
 
         # Create an index on the slug for O(1) lightning-fast lookups

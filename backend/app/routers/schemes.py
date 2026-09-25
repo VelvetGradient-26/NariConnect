@@ -1,17 +1,15 @@
-import os
+import re
 from typing import Optional
-from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException, Query
-from pymongo import MongoClient
+from fastapi import APIRouter, Depends, HTTPException, Query
+from app.auth.clerk import get_current_user
+from app.db.mongo import get_database
 
-load_dotenv()
-MONGO_URI = os.getenv("MONGO_URI")
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
-mongo_client = MongoClient(MONGO_URI)
-mongo_db = mongo_client["nariconnect"]
-schemes_collection = mongo_db["detailed_schemes"]
 
-router = APIRouter()
+def _contains(text: str) -> dict:
+    """Case-insensitive substring match; user input is escaped so it is never treated as a regex."""
+    return {"$regex": re.escape(text), "$options": "i"}
 
 
 @router.get("/schemes")
@@ -27,34 +25,35 @@ async def get_schemes(
 
     if search:
         query["$or"] = [
-            {"basicDetails.schemeName": {"$regex": search, "$options": "i"}},
-            {"schemeContent.briefDescription": {"$regex": search, "$options": "i"}}
+            {"basicDetails.schemeName": _contains(search)},
+            {"schemeContent.briefDescription": _contains(search)}
         ]
 
     if sector:
         # Assuming sector maps to schemeCategory
-        query["basicDetails.schemeCategory.label"] = {"$regex": sector, "$options": "i"}
+        query["basicDetails.schemeCategory.label"] = _contains(sector)
 
     if state:
-        query["basicDetails.state"] = {"$regex": state, "$options": "i"}
+        query["basicDetails.state"] = _contains(state)
 
     if level:
-        query["basicDetails.level.label"] = {"$regex": level, "$options": "i"}
+        query["basicDetails.level.label"] = _contains(level)
 
-    total_count = schemes_collection.count_documents(query)
+    db = await get_database()
+    schemes_collection = db.detailed_schemes
+
+    total_count = await schemes_collection.count_documents(query)
     skip = (page - 1) * limit
 
     cursor = schemes_collection.find(query).skip(skip).limit(limit)
-    schemes = list(cursor)
+    schemes = await cursor.to_list(length=limit)
 
-    result = []
     for scheme in schemes:
         if "_id" in scheme:
             scheme["_id"] = str(scheme["_id"])
-        result.append(scheme)
 
     return {
-        "data": result,
+        "data": schemes,
         "page": page,
         "limit": limit,
         "total": total_count,
@@ -64,7 +63,8 @@ async def get_schemes(
 
 @router.get("/schemes/{slug}")
 async def get_scheme_details(slug: str):
-    scheme = schemes_collection.find_one({"slug": slug})
+    db = await get_database()
+    scheme = await db.detailed_schemes.find_one({"slug": slug})
     if not scheme:
         raise HTTPException(status_code=404, detail="Scheme not found")
 

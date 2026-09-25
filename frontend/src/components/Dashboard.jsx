@@ -1,6 +1,5 @@
 import React from 'react';
 import { UserButton, useUser } from '@clerk/clerk-react';
-import { useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Banknote, 
@@ -19,7 +18,6 @@ import {
 
 const Dashboard = () => {
   const { user } = useUser();
-  const navigate = useNavigate();
 
   const schemes = [
     {

@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
 import { Save, ArrowLeft, LayoutDashboard } from 'lucide-react';
@@ -19,10 +18,17 @@ const CATEGORIES = [
   "Scheduled Tribe (ST)", "Nomadic or Semi-Nomadic Communities"
 ];
 
+const loadSavedProfile = () => {
+  try {
+    return JSON.parse(localStorage.getItem('userProfile')) || {};
+  } catch {
+    return {};
+  }
+};
+
 const Profile = () => {
-  const navigate = useNavigate();
   const { user } = useUser();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => ({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     email: user?.primaryEmailAddress?.emailAddress || '',
@@ -38,16 +44,10 @@ const Profile = () => {
     employmentStatus: '',
     isBPL: '',
     annualIncome: '',
-    isDistress: ''
-  });
+    isDistress: '',
+    ...loadSavedProfile()
+  }));
   const [isSaved, setIsSaved] = useState(false);
-
-  useEffect(() => {
-    const savedData = localStorage.getItem('userProfile');
-    if (savedData) {
-      setFormData(prev => ({ ...prev, ...JSON.parse(savedData) }));
-    }
-  }, []);
 
   const calculateAge = (dob) => {
     const today = new Date();
