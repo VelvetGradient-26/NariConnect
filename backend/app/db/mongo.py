@@ -8,7 +8,8 @@ _db = None
 async def get_database():
     global _client, _db
     if _client is None:
-        _client = AsyncIOMotorClient(MONGO_URI)
+        # Fail fast when MongoDB is unreachable instead of the 30s driver default
+        _client = AsyncIOMotorClient(MONGO_URI, serverSelectionTimeoutMS=3000)
         _db = _client["nariconnect"]
     return _db
 

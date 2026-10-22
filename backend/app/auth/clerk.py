@@ -1,17 +1,16 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
-from app.config import CLERK_SECRET_KEY, AUTH_DEV_BYPASS
+from app.config import CLERK_ISSUER, CLERK_AUTHORIZED_PARTIES, AUTH_DEV_BYPASS
 
 security = HTTPBearer()
 
 DEV_TOKEN = "dev_test_123"
 DEV_USER_ID = "dev_user_123"
 
-# Clerk's Backend API serves the instance's signing keys; keys are cached by the client.
-_jwks_client = jwt.PyJWKClient(
-    "https://api.clerk.com/v1/jwks",
-    headers={"Authorization": f"Bearer {CLERK_SECRET_KEY}"},
+# The Clerk instance publishes its public signing keys; keys are cached by the client.
+_jwks_client = (
+    jwt.PyJWKClient(f"{CLERK_ISSUER}/.well-known/jwks.json") if CLERK_ISSUER else None
 )
 
 
@@ -35,10 +34,10 @@ async def get_current_user(
     if AUTH_DEV_BYPASS and token == DEV_TOKEN:
         return DEV_USER_ID
 
-    if not CLERK_SECRET_KEY:
+    if _jwks_client is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Authentication is not configured (CLERK_SECRET_KEY is missing)",
+            detail="Authentication is not configured (set CLERK_PUBLISHABLE_KEY)",
         )
 
     try:
@@ -56,11 +55,17 @@ async def get_current_user(
             token,
             signing_key.key,
             algorithms=["RS256"],
-            options={"require": ["exp", "sub"]},
+            issuer=CLERK_ISSUER,
+            options={"require": ["exp", "iss", "sub"]},
             leeway=10,  # tolerate small clock skew with Clerk (short-lived tokens)
         )
     except jwt.PyJWTError as e:
         raise _unauthorized(f"Invalid token: {e}")
+
+    # Clerk sets `azp` to the origin that requested the token
+    azp = decoded.get("azp")
+    if azp and azp not in CLERK_AUTHORIZED_PARTIES:
+        raise _unauthorized("Invalid token: unauthorized party")
 
     user_id = decoded.get("sub")
     if not user_id:

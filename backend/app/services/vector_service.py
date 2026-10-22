@@ -2,7 +2,15 @@ import json
 import os
 import threading
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct, Filter
+from qdrant_client.models import (
+    Distance,
+    VectorParams,
+    PointStruct,
+    Filter,
+    FieldCondition,
+    MatchText,
+    MatchValue,
+)
 from app.config import QDRANT_PATH
 from app.services.ollama_service import get_embedding
 
@@ -16,6 +24,8 @@ COLLECTION_NAME = "schemes"
 # Callers run in worker threads; serialize access so a concurrent (re)vectorization
 # can't race with another one or delete the collection mid-search.
 _lock = threading.RLock()
+# lowercase state name -> canonical spelling used in the "states" payload; rebuilt after vectorization
+_known_states: dict[str, str] | None = None
 
 
 def load_schemes_from_json(filepath: str) -> list[dict]:
@@ -118,11 +128,45 @@ def vectorize_schemes(filepath: str = "myscheme_rag_dataset.json", force: bool =
                 collection_name=COLLECTION_NAME, points=points[start : start + batch_size]
             )
 
+        global _known_states
+        _known_states = None
         print(f"Successfully vectorized {len(schemes)} schemes.")
         return {"status": "success", "count": len(schemes)}
 
 
-def search_schemes(query: str, n_results: int = 5) -> list[dict]:
+def _canonical_state(state: str | None) -> str | None:
+    """Map a user-supplied state onto the exact spelling stored in scheme payloads (case-insensitive)."""
+    global _known_states
+    if not state:
+        return None
+    if _known_states is None:
+        _known_states = {}
+        offset = None
+        while True:
+            points, offset = client.scroll(
+                COLLECTION_NAME, limit=1000, offset=offset, with_payload=["states"]
+            )
+            for point in points:
+                for name in point.payload.get("states", "").split(","):
+                    name = name.strip()
+                    if name and name != "All":
+                        _known_states[name.lower()] = name
+            if offset is None:
+                break
+    return _known_states.get(state.strip().lower())
+
+
+def _state_filter(state: str) -> Filter:
+    """Schemes open to every state, or listing this state among their beneficiary states."""
+    return Filter(
+        should=[
+            FieldCondition(key="states", match=MatchValue(value="All")),
+            FieldCondition(key="states", match=MatchText(text=state)),
+        ]
+    )
+
+
+def search_schemes(query: str, n_results: int = 5, state: str | None = None) -> list[dict]:
     with _lock:
         initialize_collection()
 
@@ -137,8 +181,12 @@ def search_schemes(query: str, n_results: int = 5) -> list[dict]:
 
         query_embedding = get_embedding(query)
 
+        canonical_state = _canonical_state(state)
         results = client.query_points(
-            collection_name=COLLECTION_NAME, query=query_embedding, limit=n_results
+            collection_name=COLLECTION_NAME,
+            query=query_embedding,
+            query_filter=_state_filter(canonical_state) if canonical_state else None,
+            limit=n_results,
         )
 
         if hasattr(results, "result"):
