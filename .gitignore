@@ -8,3 +8,5 @@ __pycache__
 rag_dataset.json
 *.json
 backend 3
+mongo_export/
+backend/data/
