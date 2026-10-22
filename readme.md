@@ -126,8 +126,15 @@ pip install -r requirements.txt
 Create a `.env` file in the `backend` folder:
 ```env
 MONGO_URI=mongodb://localhost:27017
-CLERK_SECRET_KEY=sk_test_your_clerk_secret_key_here
+# Same publishable key as the frontend; the backend derives the Clerk issuer from it to verify session tokens
+CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_publishable_key_here
+# Chat model: a local/remote Ollama server, or Ollama Cloud (OLLAMA_HOST=https://ollama.com + OLLAMA_API_KEY)
 OLLAMA_HOST=http://localhost:11434
+OLLAMA_API_KEY=
+OLLAMA_MODEL=llama3:8b
+# Embeddings must use nomic-embed-text (the committed Qdrant index was built with it).
+# Ollama Cloud doesn't serve embedding models, so with a cloud OLLAMA_HOST point this at a local Ollama.
+OLLAMA_EMBED_HOST=http://localhost:11434
 # Optional: accept the bearer token `dev_test_123` for local API testing. Never enable in production.
 AUTH_DEV_BYPASS=false
 # Only needed to run data_scraper.py
@@ -194,4 +201,4 @@ nariconnect/
 ---
 
 ## 🔒 API Authentication
-All `/api/*` routes are protected using Clerk JWTs. When the React frontend makes a request, it automatically attaches the user's active session token as a Bearer token. The FastAPI backend verifies the token's RS256 signature against Clerk's JWKS (fetched with `CLERK_SECRET_KEY`) in the `get_current_user` dependency before processing the request.
+All `/api/*` routes are protected using Clerk JWTs. When the React frontend makes a request, it automatically attaches the user's active session token as a Bearer token. The FastAPI backend verifies the token's RS256 signature against the Clerk instance's public JWKS (the instance is derived from `CLERK_PUBLISHABLE_KEY`), and checks the issuer and authorized party, in the `get_current_user` dependency before processing the request.
