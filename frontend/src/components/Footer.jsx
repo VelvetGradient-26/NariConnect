@@ -1,8 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 
 const Footer = () => {
+  const navigate = useNavigate();
+
   return (
     <footer className="bg-white pt-24 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -24,7 +27,9 @@ const Footer = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center relative z-10">
-            <button className="bg-white text-rose-600 px-8 py-4 rounded-xl font-bold hover:bg-gray-100 transition-colors shadow-lg">
+            <button
+              onClick={() => navigate('/chat')}
+              className="bg-white text-rose-600 px-8 py-4 rounded-xl font-bold hover:bg-gray-100 transition-colors shadow-lg">
               Apply for AI Matching
             </button>
           </div>

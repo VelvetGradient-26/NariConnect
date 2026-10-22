@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { ArrowRight, BadgeCheck, BarChart, Utensils } from 'lucide-react';
 
 const schemes = [
@@ -40,9 +41,9 @@ const Schemes = () => {
               Intelligently matched capital opportunities for early-stage and established women-led ventures.
             </p>
           </div>
-          <a href="#" className="hidden md:flex items-center text-rose-500 font-semibold hover:text-rose-600 transition-colors">
+          <Link to="/schemes" className="hidden md:flex items-center text-rose-500 font-semibold hover:text-rose-600 transition-colors">
             View all 50+ schemes <ArrowRight className="ml-2 w-5 h-5" />
-          </a>
+          </Link>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">

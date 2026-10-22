@@ -1,6 +1,6 @@
 import React from 'react';
 import { ClerkProvider, SignIn, SignUp, SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import Schemes from './components/Schemes';
@@ -33,6 +33,21 @@ const LandingPage = () => (
   </>
 );
 
+// Linked from the navbar, but application tracking isn't built yet
+const ApplicationsPlaceholder = () => (
+  <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center bg-gray-50 px-4 text-center">
+    <h1 className="text-2xl font-bold text-gray-900 mb-2">My Applications</h1>
+    <p className="text-gray-500">Tracking your scheme applications is coming soon.</p>
+  </div>
+);
+
+const NotFound = () => (
+  <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 text-center">
+    <h1 className="text-2xl font-bold text-gray-900 mb-2">Page not found</h1>
+    <Link to="/" className="text-rose-500 font-semibold hover:text-rose-600">Go to the home page</Link>
+  </div>
+);
+
 const ClerkProviderWithRoutes = () => {
   const navigate = useNavigate();
 
@@ -40,6 +55,9 @@ const ClerkProviderWithRoutes = () => {
     <ClerkProvider
       publishableKey={PUBLISHABLE_KEY}
       navigate={(to) => navigate(to)}
+      // Keep sign-in/up (and RedirectToSignIn) on the app's own routes instead of Clerk's hosted pages
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
       appearance={{
         variables: {
           colorPrimary: '#f43f5e',
@@ -158,6 +176,21 @@ const ClerkProviderWithRoutes = () => {
             </>
           }
         />
+        <Route
+          path="/applications"
+          element={
+            <>
+              <SignedIn>
+                <AuthenticatedNavbar />
+                <ApplicationsPlaceholder />
+              </SignedIn>
+              <SignedOut>
+                <RedirectToSignIn />
+              </SignedOut>
+            </>
+          }
+        />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </ClerkProvider>
   );

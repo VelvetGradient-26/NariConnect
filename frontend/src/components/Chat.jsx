@@ -11,25 +11,61 @@ import {
   Loader2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { chatWithAI } from '../services/api';
+
+// Seed the chat with what onboarding/profile saved, in the shape the backend's profile uses
+const loadProfileForChat = () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('userProfile')) || {};
+    return {
+      age: Number(saved.age) || null,
+      state: saved.state || null,
+      occupation: saved.employmentStatus || null,
+      income: Number(saved.annualIncome) || null,
+    };
+  } catch {
+    return {};
+  }
+};
+
+const GREETING = {
+  id: 1,
+  sender: 'bot',
+  text: "Hello! I'm NariConnect AI. I can help you find financial schemes tailored to your profile. How can I assist you today?"
+};
+
+// The conversation survives visiting a scheme page and coming back (per user, for this browser session)
+const chatStorageKey = (userId) => `nariconnect.chat.${userId}`;
+
+const loadSavedChat = (userId) => {
+  try {
+    return JSON.parse(sessionStorage.getItem(chatStorageKey(userId))) || {};
+  } catch {
+    return {};
+  }
+};
 
 const Chat = () => {
   const { user } = useUser();
   const { getToken } = useAuth();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [userProfile, setUserProfile] = useState({});
+  const [userProfile, setUserProfile] = useState(() => loadSavedChat(user?.id).userProfile || loadProfileForChat());
   const messagesEndRef = useRef(null);
 
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: 'bot',
-      text: "Hello! I'm NariConnect AI. I can help you find financial schemes tailored to your profile. How can I assist you today?"
+  const [messages, setMessages] = useState(() => loadSavedChat(user?.id).messages || [GREETING]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      sessionStorage.setItem(chatStorageKey(user.id), JSON.stringify({ messages, userProfile }));
+    } catch {
+      // Storage unavailable (private mode, quota); the chat still works, it just won't persist
     }
-  ]);
+  }, [messages, userProfile, user?.id]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -67,9 +103,10 @@ const Chat = () => {
         sender: 'bot',
         text: data.response,
         cards: data.schemes?.map(scheme => ({
+          slug: scheme.id,
           title: scheme.metadata.schemeShortTitle || scheme.metadata.schemeName,
           desc: scheme.metadata.description ? scheme.metadata.description.substring(0, 120) + "..." : "No description available",
-          tag: scheme.metadata.categories?.split(',')[0] || "SCHEME"
+          tag: scheme.metadata.categories?.split(', ')[0] || "SCHEME"
         }))
       };
       
@@ -146,7 +183,7 @@ const Chat = () => {
                 {msg.cards && msg.cards.length > 0 && (
                   <div className="grid md:grid-cols-2 gap-4 w-full">
                     {msg.cards.map((card, idx) => (
-                      <div key={idx} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                      <Link key={idx} to={`/schemes/${card.slug}`} className="block bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex justify-between items-start mb-3">
                           <div className="p-2 bg-rose-50 rounded-lg text-rose-500">
                             <LayoutDashboard size={20} />
@@ -155,7 +192,7 @@ const Chat = () => {
                         </div>
                         <h4 className="font-bold text-gray-900 mb-2 line-clamp-2">{card.title}</h4>
                         <p className="text-sm text-gray-500 line-clamp-3">{card.desc}</p>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 )}

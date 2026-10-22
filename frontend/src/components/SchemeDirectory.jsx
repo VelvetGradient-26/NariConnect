@@ -24,6 +24,7 @@ const SchemeDirectory = () => {
 
   const [schemes, setSchemes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalSchemes, setTotalSchemes] = useState(0);
@@ -48,11 +49,17 @@ const SchemeDirectory = () => {
         const token = await getToken();
         const data = await fetchSchemes(token, page, filters);
         if (stale) return;
+        setLoadError(null);
         setSchemes(data.data);
-        setTotalPages(data.total_pages);
+        // No results still means one (empty) page, so pagination never offers page 0
+        setTotalPages(Math.max(1, data.total_pages));
         setTotalSchemes(data.total);
       } catch (error) {
-        if (!stale) console.error("Failed to load schemes", error);
+        if (!stale) {
+          console.error("Failed to load schemes", error);
+          setLoadError("We couldn't load schemes right now. Please try again later.");
+          setSchemes([]);
+        }
       } finally {
         if (!stale) setLoading(false);
       }
@@ -78,6 +85,11 @@ const SchemeDirectory = () => {
     } else {
       setActiveFilters(prev => prev.filter(f => f.key !== key));
     }
+  };
+
+  const changePage = (next) => {
+    setPage(Math.min(Math.max(1, next), totalPages));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const removeFilter = (key) => {
@@ -218,6 +230,10 @@ const SchemeDirectory = () => {
             <div className="flex justify-center py-20">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"></div>
             </div>
+          ) : loadError || schemes.length === 0 ? (
+            <div className="py-20 text-center text-slate-500">
+              {loadError || "No schemes match your filters."}
+            </div>
           ) : (
             /* Scheme List */
             <div className="grid gap-6">
@@ -286,7 +302,7 @@ const SchemeDirectory = () => {
           {/* Pagination */}
           <div className="flex items-center justify-center gap-2 py-8">
             <button 
-              onClick={() => setPage(p => Math.max(1, p - 1))}
+              onClick={() => changePage(page - 1)}
               disabled={page === 1}
               className="size-10 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-400 disabled:opacity-50 transition-colors"
             >
@@ -298,8 +314,8 @@ const SchemeDirectory = () => {
             </span>
 
             <button 
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
+              onClick={() => changePage(page + 1)}
+              disabled={page >= totalPages}
               className="size-10 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-400 disabled:opacity-50 transition-colors"
             >
               <ChevronRight size={20} />

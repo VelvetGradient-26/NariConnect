@@ -20,6 +20,17 @@ import {
   ExternalLink,
 } from "lucide-react";
 
+// Scraped myScheme markdown contains <br> tags (raw or escaped) and entities escaped
+// more than once (e.g. "&amp;amp;#39;"), which the markdown renderer would show literally
+const cleanMarkdown = (text) => {
+  let out = text;
+  for (let prev = null; prev !== out; ) {
+    prev = out;
+    out = out.replace(/&amp;(#\d+|#x[0-9a-f]+|[a-z]+);/gi, "&$1;");
+  }
+  return out.replace(/(?:<|&lt;)br\s*\/?(?:>|&gt;)/gi, "  \n");
+};
+
 const SchemeDetails = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -125,10 +136,11 @@ const SchemeDetails = () => {
 
       switch (item.type) {
         case "paragraph":
+          // div, not p: children can include block-level key/value rows
           return (
-            <p className="text-slate-600 leading-relaxed mb-4 last:mb-0">
+            <div className="text-slate-600 leading-relaxed mb-4 last:mb-0">
               {children}
-            </p>
+            </div>
           );
         case "ol_list":
           return (
@@ -194,7 +206,7 @@ const SchemeDetails = () => {
     if (typeof value === "string") {
       return (
         <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanMarkdown(value)}</ReactMarkdown>
         </div>
       );
     }
@@ -331,7 +343,8 @@ const SchemeDetails = () => {
       <main className="max-w-7xl mx-auto w-full">
         <div className="mb-8">
           <button
-            onClick={() => navigate("/schemes")}
+            // Return to wherever the user came from (directory with filters, or chat); fall back for direct visits
+            onClick={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate("/schemes"))}
             className="inline-flex items-center gap-2 text-slate-600 hover:text-rose-500 transition-colors font-semibold"
           >
             <ArrowLeft size={20} />
@@ -403,6 +416,8 @@ const SchemeDetails = () => {
                 ) : (
                   <button
                     type="button"
+                    disabled
+                    title="No online application link for this scheme"
                     className="px-8 py-3 bg-slate-300 text-slate-600 rounded-xl text-base font-bold cursor-not-allowed"
                   >
                     Apply Now

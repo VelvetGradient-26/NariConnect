@@ -1,10 +1,13 @@
 import React, { Suspense } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import NetworkAnimation from './NetworkAnimation';
 
 const Hero = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative pt-20 pb-12 lg:pt-32 lg:pb-24 overflow-hidden bg-gradient-to-br from-rose-50 to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -34,6 +37,7 @@ const Hero = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={() => navigate('/chat')}
                 className="px-8 py-4 bg-rose-500 text-white rounded-xl font-semibold shadow-lg shadow-rose-500/30 hover:bg-rose-600 transition-all"
               >
                 Start Matching
@@ -42,6 +46,7 @@ const Hero = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={() => navigate('/schemes')}
                 className="px-8 py-4 bg-white text-rose-600 border border-rose-100 rounded-xl font-semibold hover:bg-rose-50 transition-all"
               >
                 Browse Schemes
